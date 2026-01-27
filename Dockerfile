@@ -27,7 +27,8 @@ WORKDIR /app
 
 # Copiar solo lo necesario para standalone
 COPY --from=builder /app/.next/standalone ./
-COPY --from=builder /app/public ./public
+#COPY --from=builder /app/public ./public
+COPY --from=builder /app/.next/static ./.next/static
 
 # Cambiar a usuario seguro
 USER appuser
