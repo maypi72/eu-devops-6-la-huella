@@ -1,0 +1,10 @@
+.next
+node_modules/** 
+coverage
+.env.local
+.github/workflows/ci-cd.yml
+Dockerfile
+DEPLOYMENT_STRATEGIES.md
+.github/workflows/blue-green-switch.yml
+deploy-blue-green-solution.sh
+nginx.conf.backup

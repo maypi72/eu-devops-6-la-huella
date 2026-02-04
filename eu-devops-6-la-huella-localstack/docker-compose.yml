@@ -1,0 +1,43 @@
+
+services:
+  # Proxy inverso - punto de entrada único
+  nginx:
+    image: nginx:alpine
+    ports:
+      - "80:80"
+    volumes:
+      - ./nginx.conf:/etc/nginx/nginx.conf:ro
+    depends_on:
+      - blue-app
+      - green-app
+    restart: unless-stopped
+
+  # Aplicación Blue (versión actual en producción)
+  blue-app:
+    build: .
+    environment:
+      - CURRENT_STAGE=1
+      - USE_STATIC_DASHBOARD=true
+      - NODE_ENV=production
+    expose:
+      - "3000"
+    ports:
+      - "3001:3000"
+    restart: unless-stopped
+
+  # Aplicación Green (nueva versión con LocalStack)
+  green-app:
+    build: .
+    environment:
+      - CURRENT_STAGE=2
+      - USE_STATIC_DASHBOARD=false
+      - NODE_ENV=production
+      - AWS_ENDPOINT_URL=http:/localhost:4566
+      - AWS_REGION=eu-west-1
+      - AWS_ACCESS_KEY_ID=test
+      - AWS_SECRET_ACCESS_KEY=test
+    expose:
+      - "3000"
+    ports:
+      - "3002:3000"
+    restart: unless-stopped
