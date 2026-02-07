@@ -37,7 +37,7 @@ services:
       - CURRENT_STAGE=2
       - USE_STATIC_DASHBOARD=false
       - NODE_ENV=production
-      - AWS_ENDPOINT_URL=http://localhost:4566
+      - AWS_ENDPOINT_URL=http://LocalStack:4566
       - AWS_REGION=eu-west-1
       - AWS_ACCESS_KEY_ID=test
       - AWS_SECRET_ACCESS_KEY=test
