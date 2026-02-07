@@ -42,3 +42,8 @@ services:
     ports:
       - "3002:3000"
     restart: unless-stopped
+
+networks:
+  la-huella-network_app:
+    external: true
+    name: eu-devops-6-localstack_la-huella-network
