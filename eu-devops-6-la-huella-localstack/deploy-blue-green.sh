@@ -140,10 +140,21 @@ deploy_green() {
         echo "✅ Docker Compose OK"
     else
         echo "❌ Docker Compose no disponible"
-        exit 1
+        return 1
     fi
 
     # - Verificar que los archivos necesarios existan
+
+    echo -e "${BLUE}🔍 Comprobando LocalStack...${NC}"
+
+    if curl -sf http://localhost:4566/health > /dev/null; then
+        echo -e "${GREEN}✅ LocalStack está levantado y responde correctamente${NC}"
+        return 0
+    else
+        echo -e "${RED}❌ LocalStack NO está disponible${NC}"
+        return 1
+    fi
+
     
     echo -e "${YELLOW}🔨 Construyendo servicios...${NC}"
     # Construir la nueva versión
