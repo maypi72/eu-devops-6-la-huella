@@ -36,8 +36,12 @@ get_current_target() {
     # - Si encuentra "server blue-app:3000;" (sin #), está en Blue
     # - Si encuentra "server green-app:3000;" (sin #), está en Green
     # - Devolver "blue", "green" o "unknown"
-    
-    echo "unknown"  # Placeholder - reemplazar con lógica real
+    if grep -q "server blue-app:3000;" "$NGINX_CONF"; then
+        echo "blue"
+    elif grep -q "server green-app:3000;" "$NGINX_CONF"; then
+        echo "green"
+    else
+        echo "unknown"  # Placeholder - reemplazar con lógica real
 }
 
 # 🏥 PASO 2: HEALTH CHECK
@@ -65,13 +69,13 @@ check_health() {
     # Opción C - Health check con reintentos:
     # local max_attempts=5
     # local attempt=1
-    # while [ $attempt -le $max_attempts ]; do
-    #     if [condición_health]; then
-    #         return 0
-    #     fi
-    #     sleep 2
-    #     attempt=$((attempt + 1))
-    # done
+    while [ $attempt -le $max_attempts ]; do
+        if curl -sf "http://localhost:$port/api/health" > /dev/null 2>&1; then
+            return 0
+        fi
+        sleep 2
+        attempt=$((attempt + 1))
+    done
     
     # Placeholder - implementar lógica real
     sleep 1
@@ -104,11 +108,15 @@ switch_traffic() {
     if [ "$target" = "green" ]; then
         # TODO: Implementar cambio a Green
         echo -e "${YELLOW}  → Comentando blue-app...${NC}"
+        sed -i "s/server blue-app:3000;/# server blue-app:3000;/" "$NGINX_CONF"
         echo -e "${YELLOW}  → Descomentando green-app...${NC}"
+        sed -i "s/# server green-app:3000;/server green-app:3000;/" "$NGINX_CONF"
     elif [ "$target" = "blue" ]; then
         # TODO: Implementar cambio a Blue
         echo -e "${YELLOW}  → Comentando green-app...${NC}"
+        sed -i "s/server green-app:3000;/# server green-app:3000;/" "$NGINX_CONF"
         echo -e "${YELLOW}  → Descomentando blue-app...${NC}"
+        sed -i "s/# server blue-app:3000;/server blue-app:3000;/" "$NGINX_CONF"
     else
         echo -e "${RED}❌ Target inválido: $target${NC}"
         return 1
@@ -116,7 +124,7 @@ switch_traffic() {
     
     # TODO: Recargar Nginx
     # docker-compose restart nginx
-    
+    docker compose exec nginx nginx -s reload
     echo -e "${GREEN}✅ Tráfico cambiado a $target${NC}"
 }
 
@@ -128,15 +136,30 @@ deploy_green() {
     
     # TODO: Agregar verificaciones previas
     # - Verificar que Docker Compose esté disponible
+    if docker compose version >/dev/null 2>&1; then
+        echo "✅ Docker Compose OK"
+    else
+        echo "❌ Docker Compose no disponible"
+        exit 1
+    fi
+
     # - Verificar que los archivos necesarios existan
     
     echo -e "${YELLOW}🔨 Construyendo servicios...${NC}"
     # Construir la nueva versión
-    docker-compose build green-app
+    docker compose build green-app
     
     echo -e "${YELLOW}🚀 Levantando servicios...${NC}"
     # Levantar LocalStack y Green (sin afectar Blue)
-    docker-compose up -d localstack green-app
+    docker compose -f ../../eu-devops-6-localstack/docker-compose.yml up -d
+    sleep 60
+    echo -e "${BLUE}⚙️ Inicializando recursos en LocalStack (repo externo)...${NC}"
+    bash ../../eu-devops-6-localstack/localstack-init/01-create-resources.sh
+    #insertamos elementos en las tablas
+    bash ../../eu-devops-6-localstack/localstack-init/02-insert-sample-data.sh
+    sleep 10
+    #levantamos green app
+    docker compose up -d green-app
     
     echo -e "${YELLOW}⏳ Esperando a que los servicios estén listos...${NC}"
     # Dar tiempo a que los servicios se inicialicen
