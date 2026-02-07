@@ -42,6 +42,7 @@ get_current_target() {
         echo "green"
     else
         echo "unknown"  # Placeholder - reemplazar con lógica real
+    fi
 }
 
 # 🏥 PASO 2: HEALTH CHECK
