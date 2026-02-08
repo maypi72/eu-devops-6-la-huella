@@ -50,6 +50,7 @@ get_current_target() {
 # Esta función debe verificar que un servicio esté funcionando correctamente
 check_health() {
     local service=$1
+    local url=$2
     echo -e "${YELLOW}🔍 Verificando health de $service...${NC}"
     
     # TODO: Implementar health check real
@@ -71,17 +72,18 @@ check_health() {
     local max_attempts=5
     local attempt=1
     while [ $attempt -le $max_attempts ]; do
-        if curl -sf "http://localhost:81/api/health" > /dev/null 2>&1; then
+        if curl -sf "$url" > /dev/null 2>&1; then
+            echo -e "${GREEN}✅ Health check OK para $service${NC}"
             return 0
         fi
-        sleep 2
+        sleep 3
         attempt=$((attempt + 1))
     done
     
     # Placeholder - implementar lógica real
     sleep 1
-    echo -e "${GREEN}✅ Health check completado para $service${NC}"
-    return 0
+    echo -e "${RED}❌ Health check falló para $service${NC}"
+    return 1
 }
 
 # 🔄 PASO 3: CAMBIAR TRÁFICO
