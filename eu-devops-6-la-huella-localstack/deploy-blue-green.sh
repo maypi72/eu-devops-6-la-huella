@@ -68,10 +68,10 @@ check_health() {
     # fi
     #
     # Opción C - Health check con reintentos:
-    # local max_attempts=5
-    # local attempt=1
+    local max_attempts=5
+    local attempt=1
     while [ $attempt -le $max_attempts ]; do
-        if curl -sf "http://localhost:$port/api/health" > /dev/null 2>&1; then
+        if curl -sf "http://localhost:81/api/health" > /dev/null 2>&1; then
             return 0
         fi
         sleep 2
@@ -153,7 +153,18 @@ deploy_green() {
         return 0
     else
         echo -e "${RED}❌ LocalStack NO está disponible${NC}"
-        return 1
+        echo -e "${YELLOW}🚀 Levantando servicios...${NC}"
+        # Levantar LocalStack y Green (sin afectar Blue)
+        docker compose -f ../../eu-devops-6-localstack/docker-compose.yml up -d
+        sleep 60
+    
+        echo -e "${BLUE}⚙️ Inicializando recursos en LocalStack (repo externo)...${NC}"
+        bash ../../eu-devops-6-localstack/localstack-init/01-create-resources.sh
+        
+        #insertamos elementos en las tablas
+        bash ../../eu-devops-6-localstack/localstack-init/02-insert-sample-data.sh
+        sleep 10
+        return 0
     fi
 
     
@@ -161,15 +172,7 @@ deploy_green() {
     # Construir la nueva versión
     docker compose build green-app
     
-    echo -e "${YELLOW}🚀 Levantando servicios...${NC}"
-    # Levantar LocalStack y Green (sin afectar Blue)
-    docker compose -f ../../eu-devops-6-localstack/docker-compose.yml up -d
-    sleep 60
-    echo -e "${BLUE}⚙️ Inicializando recursos en LocalStack (repo externo)...${NC}"
-    bash ../../eu-devops-6-localstack/localstack-init/01-create-resources.sh
-    #insertamos elementos en las tablas
-    bash ../../eu-devops-6-localstack/localstack-init/02-insert-sample-data.sh
-    sleep 10
+    e
     #levantamos green app
     docker compose up -d green-app
     
