@@ -178,7 +178,7 @@ deploy_green() {
 
     #VERIFICAR EXISTENCIA IMÁGENES LOCALSTACK Y GREEN APP
     #Imágenes de los contenedores
-    GREEN_IMAGE="la-huella-green-app:latest"   # Ajusta según tu docker-compose.yml
+    GREEN_IMAGE="eu-devops-6-la-huella-localstack-green-app:latest"   # Ajusta según tu docker-compose.yml
     LOCALSTACK_IMAGE="localstack/localstack:latest"
 
 
