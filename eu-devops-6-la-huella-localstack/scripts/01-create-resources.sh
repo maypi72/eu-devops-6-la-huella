@@ -35,9 +35,8 @@ awslocal dynamodb create-table \
       "ProvisionedThroughput": { "ReadCapacityUnits": 5, "WriteCapacityUnits": 5 }
     }
   ]' \
-  --provisioned-throughput ReadCapacityUnits=5,WriteCapacityUnits=5
+  --provisioned-throughput ReadCapacityUnits=5,WriteCapacityUnits=5 --no-cli-pager
 
-sleep 2  # Esperar a que la tabla esté lista
 
 # Tabla 2: la-huella-products
 echo "Creando tabla: la-huella-products"
@@ -57,9 +56,9 @@ awslocal dynamodb create-table \
       "ProvisionedThroughput": { "ReadCapacityUnits": 5, "WriteCapacityUnits": 5 }
     }
   ]' \
-  --provisioned-throughput ReadCapacityUnits=5,WriteCapacityUnits=5
+  --provisioned-throughput ReadCapacityUnits=5,WriteCapacityUnits=5 --no-cli-pager
 
-sleep 2
+
 
 # Tabla 3: la-huella-analytics
 echo "Creando tabla: la-huella-analytics"
@@ -69,9 +68,9 @@ awslocal dynamodb create-table \
       AttributeName=id,AttributeType=S \
       AttributeName=date,AttributeType=S \
   --key-schema AttributeName=id,KeyType=HASH AttributeName=date,KeyType=RANGE \
-  --provisioned-throughput ReadCapacityUnits=5,WriteCapacityUnits=5
+  --provisioned-throughput ReadCapacityUnits=5,WriteCapacityUnits=5 --no-cli-pager
 
-sleep 2
+
 
 echo "=== Creando colas SQS ==="
 awslocal sqs create-queue --queue-name la-huella-processing-queue
