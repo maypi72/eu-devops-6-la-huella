@@ -24,6 +24,7 @@ YELLOW='\033[1;33m'
 BLUE='\033[0;34m'
 NC='\033[0m' # No Color
 NGINX_CONF="./nginx.conf"
+NGINX_PORT=81
 
 echo -e "${BLUE}🚀 Iniciando Blue-Green Deployment...${NC}"
 
@@ -233,7 +234,7 @@ switch_to_green() {
     
     # Cambiar el tráfico
     switch_traffic "green"
-    if ! check_health "green-app" "http://localhost/api/health"; then
+    if ! check_health "green-app" "http://localhost:$NGINX_PORT/api/health"; then
         echo -e "${RED}❌ Health check falló, rollback a Blue${NC}"
         switch_traffic "blue"
         return 1
