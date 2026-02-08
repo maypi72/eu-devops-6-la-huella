@@ -23,6 +23,7 @@ GREEN='\033[0;32m'
 YELLOW='\033[1;33m'
 BLUE='\033[0;34m'
 NC='\033[0m' # No Color
+NGINX_CONF="./nginx.conf"
 
 echo -e "${BLUE}🚀 Iniciando Blue-Green Deployment...${NC}"
 
@@ -136,7 +137,18 @@ switch_traffic() {
 # Esta función debe desplegar la nueva versión (Green) sin afectar producción
 deploy_green() {
     echo -e "${BLUE}📦 Desplegando versión Green...${NC}"
-    
+    echo -e "${BLUE}🔧 Levantando LocalStack + Green...${NC}"
+
+    #Función para verificar si existen las imágenes de localstack y green-app
+    image_exists() {
+        local image_name=$1
+        if docker image inspect "$image_name" > /dev/null 2>&1; then
+            return 0
+        else
+            return 1
+        fi
+    }
+
     # TODO: Agregar verificaciones previas
     # - Verificar que Docker Compose esté disponible
     if docker compose version >/dev/null 2>&1; then
@@ -147,76 +159,86 @@ deploy_green() {
     fi
 
     # - Verificar que los archivos necesarios existan
+    # Verificar existe fichero docker-compose.yml
+    LOCALSTACK_COMPOSE_FILE="./docker-compose.yml"
+    if [ ! -f "$LOCALSTACK_COMPOSE_FILE" ]; then
+    echo -e "${RED}❌ No se encuentra $LOCALSTACK_COMPOSE_FILE${NC}"
+    retrun 1
+    fi
+    #Comprobamos existencia de scripts de inicialización AWS
+    INIT_DIR="./scripts"
+    for script in "01-create-resources.sh" "02-insert-data.sh"; do
+        if [ ! -f "$INIT_DIR/$script" ]; then
+            echo -e "${RED}❌ No se encuentra $INIT_DIR/$script${NC}"
+            exit 1
+        fi
+    done
+    echo -e "${GREEN}✅ Todos los archivos imprescindibles existen${NC}"
 
-    echo -e "${BLUE}🔍 Comprobando LocalStack...${NC}"
 
-    if curl -sf http://localhost:4566/health > /dev/null; then
-        echo -e "${GREEN}✅ LocalStack está levantado y responde correctamente${NC}"
-        return 0
+    #VERIFICAR EXISTENCIA IMÁGENES LOCALSTACK Y GREEN APP
+    #Imágenes de los contenedores
+    GREEN_IMAGE="la-huella-green-app:latest"   # Ajusta según tu docker-compose.yml
+    LOCALSTACK_IMAGE="localstack/localstack:latest"
+
+
+    if image_exists "$GREEN_IMAGE"; then
+        echo -e "${YELLOW}ℹ️ Imagen $GREEN_IMAGE ya existe, no se construye.${NC}"
     else
-        echo -e "${RED}❌ LocalStack NO está disponible${NC}"
-        echo -e "${YELLOW}🚀 Levantando servicios...${NC}"
-        # Levantar LocalStack y Green (sin afectar Blue)
-        docker compose -f ../../eu-devops-6-localstack/docker-compose.yml up -d
-        sleep 60
-    
-        echo -e "${BLUE}⚙️ Inicializando recursos en LocalStack (repo externo)...${NC}"
-        bash ../../eu-devops-6-localstack/localstack-init/01-create-resources.sh
-        
-        #insertamos elementos en las tablas
-        bash ../../eu-devops-6-localstack/localstack-init/02-insert-sample-data.sh
-        sleep 10
-        return 0
+        echo -e "${BLUE}🛠 Construyendo imagen $GREEN_IMAGE...${NC}"
+        docker compose --profile green build green-app
     fi
 
+    # LocalStack 
+    if image_exists "$LOCALSTACK_IMAGE"; then
+        echo -e "${YELLOW}ℹ️ Imagen $LOCALSTACK_IMAGE ya existe, no se construye.${NC}"
+    else
+        echo -e "${BLUE}🛠 Construyendo imagen $LOCALSTACK_IMAGE...${NC}"
+        docker compose --profile green build localstack
+    fi
+
+    #- Levantar localstack y green app
+    echo -e "${BLUE}🔧 Levantando LocalStack + Green...${NC}"
+    docker compose --profile green up -d localstack green-app
+
+    #-ESPERAR A QUE LOCALSTACK ESTÉ DISPONIBLE
+    echo -e "${BLUE}⏳ Esperando a que LocalStack responda...${NC}"
+    check_health "localstack" "http://localhost:4566/health"
     
-    echo -e "${YELLOW}🔨 Construyendo servicios...${NC}"
-    # Construir la nueva versión
-    docker compose build green-app
-    
-    e
-    #levantamos green app
-    docker compose up -d green-app
-    
-    echo -e "${YELLOW}⏳ Esperando a que los servicios estén listos...${NC}"
-    # Dar tiempo a que los servicios se inicialicen
+    #-Inicializar recursos aws
+    echo -e "${BLUE}⚙️ Inicializando recursos en LocalStack...${NC}"
+    bash "$INIT_DIR/01-create-resources.sh"
+    bash "$INIT_DIR/02-insert-data.sh" 
+
     sleep 15
-    
-    # Verificar que Green esté funcionando
-    if check_health "green-app"; then
-        echo -e "${GREEN}✅ Green desplegado correctamente${NC}"
+
+    #-Esperar a que Green App esté lista ---
+    echo -e "${BLUE}⏳ Esperando a que Green App responda...${NC}"
+    if check_health "green-app" "http://localhost:3002/api/health";then
+       echo -e "${GREEN}✅ Green desplegado correctamente${NC}"
     else
-        echo -e "${RED}❌ Fallo en el despliegue de Green${NC}"
-        return 1
-    fi
+       echo -e "${RED}❌ Fallo en el despliegue de Green${NC}"
+       return 1
+    fi   
 }
 
 # 🔀 PASO 5: SWITCH A PRODUCCIÓN
 # ===============================
 # Esta función debe cambiar el tráfico de Blue a Green de forma segura
+     # TODO: Implementar verificación post-cambio
+     #- Hacer health check al backend (a través del proxy)
+     # - Si falla, hacer rollback automático
 switch_to_green() {
     echo -e "${BLUE}🔄 Cambiando a producción Green...${NC}"
     
     # Cambiar el tráfico
-    if switch_traffic "green"; then
-        echo -e "${YELLOW}⏳ Verificando que el cambio funcionó...${NC}"
-        
-        # TODO: Implementar verificación post-cambio
-        # - Hacer health check al backend (a través del proxy)
-        # - Si falla, hacer rollback automático
-        
-        if check_health "backend"; then
-            echo -e "${GREEN}✅ Cambio a Green completado exitosamente${NC}"
-        else
-            echo -e "${RED}❌ Verificación falló, ejecutando rollback...${NC}"
-            # TODO: Implementar rollback automático
-            switch_traffic "blue"
-            return 1
-        fi
-    else
-        echo -e "${RED}❌ Fallo en el cambio a Green${NC}"
+    switch_traffic "green"
+    if ! check_health "green-app" "http://localhost/api/health"; then
+        echo -e "${RED}❌ Health check falló, rollback a Blue${NC}"
+        switch_traffic "blue"
         return 1
     fi
+     echo -e "${GREEN}✅ Tráfico cambiado a Green con éxito${NC}"
 }
 
 # 🧹 PASO 6: CLEANUP
@@ -228,16 +250,22 @@ cleanup_blue() {
     # TODO: Implementar cleanup inteligente
     # OPCIONES:
     # 1. Preguntar al usuario si quiere parar Blue
-    # 2. Mantener Blue corriendo para posible rollback
+     # 2. Mantener Blue corriendo para posible rollback
     # 3. Parar Blue automáticamente después de X tiempo
-    #
-    # EJEMPLO de confirmación:
-    # read -p "¿Parar Blue? (y/N): " -n 1 -r
-    # if [[ $REPLY =~ ^[Yy]$ ]]; then
-    #     docker-compose stop blue-app
-    # fi
-    
-    echo -e "${YELLOW}ℹ️  Blue mantenido para posible rollback${NC}"
+     if docker compose ps blue-app | grep -q "Up"; then
+        read -p "¿Deseas parar la versión Blue para liberar recursos? (y/N): " -n 1 -r
+        echo
+        if [[ $REPLY =~ ^[Yy]$ ]]; then
+            echo -e "${YELLOW}⏳ Parando Blue...${NC}"
+            docker compose stop blue-app
+            echo -e "${GREEN}✅ Blue detenido${NC}"
+        else
+            echo -e "${YELLOW}ℹ️ Blue mantenido para posible rollback${NC}"
+        fi
+    else
+        echo -e "${YELLOW}ℹ️ Blue no está corriendo, no se hace nada${NC}"
+    fi
+
     echo -e "${GREEN}✅ Cleanup completado${NC}"
 }
 
@@ -258,14 +286,17 @@ intelligent_switch() {
         "blue")
             echo -e "${BLUE}🔄 Cambiando de Blue a Green...${NC}"
             # TODO: Llamar a switch_traffic "green"
+            switch_traffic "green"
             ;;
         "green")
             echo -e "${BLUE}🔄 Cambiando de Green a Blue...${NC}"
             # TODO: Llamar a switch_traffic "blue"
+            switch_traffic "blue"
             ;;
         *)
             echo -e "${YELLOW}❓ Estado desconocido, cambiando a Green...${NC}"
             # TODO: Llamar a switch_traffic "green"
+            switch_traffic "green"
             ;;
     esac
 }
@@ -278,7 +309,7 @@ show_status() {
     
     # Mostrar servicios corriendo
     echo -e "${YELLOW}Servicios:${NC}"
-    docker-compose ps
+    docker compose ps
     echo
     
     # Mostrar configuración actual
