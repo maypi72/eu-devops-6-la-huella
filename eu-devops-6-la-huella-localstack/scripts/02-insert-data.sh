@@ -22,11 +22,11 @@ check_command() {
 }
 
 # Esperar a que las tablas existan
-for table in la-huella-products la-huella-comments; do
-    echo "⏳ Esperando a que la tabla $table exista..."
-    aws --endpoint-url="$ENDPOINT" dynamodb wait table-exists --table-name "$table"
-    check_command "Tabla $table lista"
-done
+#for table in la-huella-products la-huella-comments; do
+ #   echo "⏳ Esperando a que la tabla $table exista..."
+  #  aws --endpoint-url="$ENDPOINT" dynamodb wait table-exists --table-name "$table"
+   # check_command "Tabla $table lista"
+#done
 
 # Productos de ejemplo
 echo "📦 Insertando productos de ejemplo..."
