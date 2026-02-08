@@ -204,7 +204,7 @@ deploy_green() {
 
     #-ESPERAR A QUE LOCALSTACK ESTÉ DISPONIBLE
     echo -e "${BLUE}⏳ Esperando a que LocalStack responda...${NC}"
-    check_health "localstack" "http://localhost:4566/_localstack/health > /dev/null"
+    check_health "localstack" "http://localhost:4566/_localstack/health"
     
     #-Inicializar recursos aws
     echo -e "${BLUE}⚙️ Inicializando recursos en LocalStack...${NC}"
