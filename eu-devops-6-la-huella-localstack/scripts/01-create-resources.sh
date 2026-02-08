@@ -40,16 +40,17 @@ fi
 
 echo
 echo "=== Creando tablas DynamoDB ==="
-
 create_table_if_not_exists() {
   local table=$1
+  shift
 
   if awslocal dynamodb describe-table --table-name "$table" >/dev/null 2>&1; then
     echo "⚠️  Tabla ya existe: $table (saltando)"
   else
     echo "✅ Creando tabla: $table"
-    shift
+
     "$@"
+
     echo "⏳ Esperando a que la tabla $table exista..."
     awslocal dynamodb wait table-exists --table-name "$table"
     echo "✅ Tabla lista: $table"
@@ -58,64 +59,138 @@ create_table_if_not_exists() {
 
 # Tabla 1: la-huella-comments
 create_table_if_not_exists "la-huella-comments" \
-awslocal dynamodb create-table \
-  --table-name la-huella-comments \
-  --attribute-definitions \
+  awslocal dynamodb create-table \
+    --table-name la-huella-comments \
+    --attribute-definitions \
       AttributeName=id,AttributeType=S \
       AttributeName=productId,AttributeType=S \
       AttributeName=createdAt,AttributeType=S \
-  --key-schema AttributeName=id,KeyType=HASH \
-  --global-secondary-indexes '[
-    {
-      "IndexName": "ProductIndex",
-      "KeySchema": [
-        { "AttributeName": "productId", "KeyType": "HASH" },
-        { "AttributeName": "createdAt", "KeyType": "RANGE" }
-      ],
-      "Projection": { "ProjectionType": "ALL" },
-      "ProvisionedThroughput": { "ReadCapacityUnits": 5, "WriteCapacityUnits": 5 }
-    }
-  ]' \
-  --provisioned-throughput ReadCapacityUnits=5,WriteCapacityUnits=5 \
-  --no-cli-pager
-
+    --key-schema \
+      AttributeName=id,KeyType=HASH \
+    --global-secondary-indexes '[
+      {
+        "IndexName": "ProductIndex",
+        "KeySchema": [
+          {"AttributeName":"productId","KeyType":"HASH"},
+          {"AttributeName":"createdAt","KeyType":"RANGE"}
+        ],
+        "Projection": {"ProjectionType":"ALL"}
+      }
+    ]' \
+    --billing-mode PAY_PER_REQUEST \
+    --no-cli-pager
 
 # Tabla 2: la-huella-products
 create_table_if_not_exists "la-huella-products" \
-awslocal dynamodb create-table \
-  --table-name la-huella-products \
-  --attribute-definitions \
+  awslocal dynamodb create-table \
+    --table-name la-huella-products \
+    --attribute-definitions \
       AttributeName=id,AttributeType=S \
       AttributeName=category,AttributeType=S \
-  --key-schema AttributeName=id,KeyType=HASH \
-  --global-secondary-indexes '[
-    {
-      "IndexName": "CategoryIndex",
-      "KeySchema": [
-        { "AttributeName": "category", "KeyType": "HASH" }
-      ],
-      "Projection": { "ProjectionType": "ALL" },
-      "ProvisionedThroughput": { "ReadCapacityUnits": 5, "WriteCapacityUnits": 5 }
-    }
-  ]' \
-  --provisioned-throughput ReadCapacityUnits=5,WriteCapacityUnits=5 \
-  --no-cli-pager
-
+    --key-schema \
+      AttributeName=id,KeyType=HASH \
+    --global-secondary-indexes '[
+      {
+        "IndexName": "CategoryIndex",
+        "KeySchema": [
+          {"AttributeName":"category","KeyType":"HASH"}
+        ],
+        "Projection": {"ProjectionType":"ALL"}
+      }
+    ]' \
+    --billing-mode PAY_PER_REQUEST \
+    --no-cli-pager
 
 # Tabla 3: la-huella-analytics
 create_table_if_not_exists "la-huella-analytics" \
-awslocal dynamodb create-table \
-  --table-name la-huella-analytics \
-  --attribute-definitions \
+  awslocal dynamodb create-table \
+    --table-name la-huella-analytics \
+    --attribute-definitions \
       AttributeName=id,AttributeType=S \
       AttributeName=date,AttributeType=S \
-  --key-schema \
+    --key-schema \
       AttributeName=id,KeyType=HASH \
       AttributeName=date,KeyType=RANGE \
-  --provisioned-throughput ReadCapacityUnits=5,WriteCapacityUnits=5 \
-  --no-cli-pager
+    --billing-mode PAY_PER_REQUEST \
+    --no-cli-pager
 
-echo
+echo "✅ Tablas DynamoDB creadas correctamente"
+create_table_if_not_exists() {
+  local table=$1
+  shift
+
+  if awslocal dynamodb describe-table --table-name "$table" >/dev/null 2>&1; then
+    echo "⚠️  Tabla ya existe: $table (saltando)"
+  else
+    echo "✅ Creando tabla: $table"
+
+    "$@"
+
+    echo "⏳ Esperando a que la tabla $table exista..."
+    awslocal dynamodb wait table-exists --table-name "$table"
+    echo "✅ Tabla lista: $table"
+  fi
+}
+
+# Tabla 1: la-huella-comments
+create_table_if_not_exists "la-huella-comments" \
+  awslocal dynamodb create-table \
+    --table-name la-huella-comments \
+    --attribute-definitions \
+      AttributeName=id,AttributeType=S \
+      AttributeName=productId,AttributeType=S \
+      AttributeName=createdAt,AttributeType=S \
+    --key-schema \
+      AttributeName=id,KeyType=HASH \
+    --global-secondary-indexes '[
+      {
+        "IndexName": "ProductIndex",
+        "KeySchema": [
+          {"AttributeName":"productId","KeyType":"HASH"},
+          {"AttributeName":"createdAt","KeyType":"RANGE"}
+        ],
+        "Projection": {"ProjectionType":"ALL"}
+      }
+    ]' \
+    --billing-mode PAY_PER_REQUEST \
+    --no-cli-pager
+
+# Tabla 2: la-huella-products
+create_table_if_not_exists "la-huella-products" \
+  awslocal dynamodb create-table \
+    --table-name la-huella-products \
+    --attribute-definitions \
+      AttributeName=id,AttributeType=S \
+      AttributeName=category,AttributeType=S \
+    --key-schema \
+      AttributeName=id,KeyType=HASH \
+    --global-secondary-indexes '[
+      {
+        "IndexName": "CategoryIndex",
+        "KeySchema": [
+          {"AttributeName":"category","KeyType":"HASH"}
+        ],
+        "Projection": {"ProjectionType":"ALL"}
+      }
+    ]' \
+    --billing-mode PAY_PER_REQUEST \
+    --no-cli-pager
+
+# Tabla 3: la-huella-analytics
+create_table_if_not_exists "la-huella-analytics" \
+  awslocal dynamodb create-table \
+    --table-name la-huella-analytics \
+    --attribute-definitions \
+      AttributeName=id,AttributeType=S \
+      AttributeName=date,AttributeType=S \
+    --key-schema \
+      AttributeName=id,KeyType=HASH \
+      AttributeName=date,KeyType=RANGE \
+    --billing-mode PAY_PER_REQUEST \
+    --no-cli-pager
+
+echo "✅ Tablas DynamoDB creadas correctamente"
+
 
 
 echo "=== Creando colas SQS ==="
