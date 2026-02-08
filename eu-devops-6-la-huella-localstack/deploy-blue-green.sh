@@ -112,15 +112,15 @@ switch_traffic() {
     if [ "$target" = "green" ]; then
         # TODO: Implementar cambio a Green
         echo -e "${YELLOW}  → Comentando blue-app...${NC}"
-        sed -i "s/server blue-app:3000;/# server blue-app:3000;/" "$NGINX_CONF"
+        sed -i "s/^[[:space:]]*server blue-app:3000;/# server blue-app:3000;/" "$NGINX_CONF"
         echo -e "${YELLOW}  → Descomentando green-app...${NC}"
-        sed -i "s/# server green-app:3000;/server green-app:3000;/" "$NGINX_CONF"
+        sed -i "s/^[[:space:]]*# server green-app:3000;/server green-app:3000;/" "$NGINX_CONF"
     elif [ "$target" = "blue" ]; then
         # TODO: Implementar cambio a Blue
         echo -e "${YELLOW}  → Comentando green-app...${NC}"
-        sed -i "s/server green-app:3000;/# server green-app:3000;/" "$NGINX_CONF"
+        sed -i "s/^[[:space:]]*server green-app:3000;/# server green-app:3000;/" "$NGINX_CONF"
         echo -e "${YELLOW}  → Descomentando blue-app...${NC}"
-        sed -i "s/# server blue-app:3000;/server blue-app:3000;/" "$NGINX_CONF"
+        sed -i "s/^[[:space:]]*# server blue-app:3000;/server blue-app:3000;/" "$NGINX_CONF"
     else
         echo -e "${RED}❌ Target inválido: $target${NC}"
         return 1
