@@ -78,7 +78,7 @@ check_health() {
             echo -e "${GREEN}✅ Health check OK para $service${NC}"
             return 0
         fi
-        sleep 3
+        sleep 12
         attempt=$((attempt + 1))
     done
     
