@@ -126,10 +126,9 @@ switch_traffic() {
         echo -e "${RED}❌ Target inválido: $target${NC}"
         return 1
     fi
-    
+    sleep 5
     # TODO: Recargar Nginx
-    # docker-compose restart nginx
-    docker compose exec nginx nginx -s reload
+    docker compose restart nginx
     echo -e "${GREEN}✅ Tráfico cambiado a $target${NC}"
 }
 
