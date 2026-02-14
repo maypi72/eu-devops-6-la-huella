@@ -17,11 +17,11 @@ services:
       - SERVICES=s3,dynamodb,sqs,cloudwatch,logs
 
       # Configuración básica
-      - DEBUG=1 #Modo debug para dispone de más información
+      - DEBUG=1 
       - DOCKER_HOST=unix:///var/run/docker.sock
       - LOCALSTACK_HOST=localhost
 
-      # Persistencia de datos para reinicios(opcional)
+      # Persistencia de datos
       - PERSISTENCE=1
     volumes:
       - localstack-data:/var/lib/localstack
@@ -34,7 +34,7 @@ services:
       - "81:80"
     volumes:
       - ./nginx.conf:/etc/nginx/nginx.conf:ro
-      #- ./nginx-default-empty.conf:/etc/nginx/conf.d/default.conf:ro
+      
     depends_on:
       - blue-app
       #- green-app
